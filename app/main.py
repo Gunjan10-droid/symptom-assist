@@ -178,11 +178,12 @@ FINAL_LINK_THRESHOLD = 0.65
 
 
 def merge_symptom_timeline(existing: List[str], newly_extracted: List[str]) -> List[str]:
-    """Merge symptoms while preserving first-seen order across turns."""
+    """Preserve first-seen order across turns while removing duplicates."""
     merged: List[str] = []
     seen = set()
+
     for symptom in (existing or []) + (newly_extracted or []):
-        normalised = symptom.strip().lower()
+        normalised = (symptom or "").strip().lower()
         if not normalised or normalised in seen:
             continue
         seen.add(normalised)
@@ -191,7 +192,7 @@ def merge_symptom_timeline(existing: List[str], newly_extracted: List[str]) -> L
 
 
 def build_journey_edges(symptom_timeline: List[str], candidates: List[dict]) -> List[dict]:
-    """Build sequential symptom path and optional final symptom->condition edge."""
+    """Build step-by-step symptom chain and threshold-gated first symptom->condition link."""
     edges: List[dict] = []
 
     for i in range(len(symptom_timeline) - 1):
@@ -203,13 +204,14 @@ def build_journey_edges(symptom_timeline: List[str], candidates: List[dict]) -> 
 
     if symptom_timeline and candidates:
         top = candidates[0]
-        score = float(top.get("score", 0))
-        if score >= FINAL_LINK_THRESHOLD:
+        top_score = float(top.get("score", 0.0))
+        top_condition_id = top.get("condition_id", "")
+        if top_condition_id and top_score >= FINAL_LINK_THRESHOLD:
             edges.append({
-                "from": symptom_timeline[-1],
-                "to": top.get("condition_id", ""),
-                "edge_type": "SYMPTOM_TO_CONDITION",
-                "score": round(score, 3),
+                "from": symptom_timeline[0],
+                "to": top_condition_id,
+                "edge_type": "FIRST_SYMPTOM_TO_CONDITION",
+                "score": round(top_score, 3),
             })
 
     return edges
