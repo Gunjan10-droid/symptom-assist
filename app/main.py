@@ -56,6 +56,10 @@ NLP = SymptomExtractor(csv_path=_SYMPTOM_CSV)
 print("[startup] Groq client ready.")
 GROQ = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+# In-memory store for conversational state. Maps session_id -> list of symptoms.
+# In production, use Redis or a database.
+SESSION_STORE = {}
+
 # ---------------------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------------------
@@ -80,7 +84,8 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[Message]
-    extracted_symptoms: Optional[List[str]] = []  # accumulate across turns
+    extracted_symptoms: Optional[List[str]] = []  # backward compatibility
+    session_id: Optional[str] = None              # accumulate across turns using session
 
 class ChatResponse(BaseModel):
     reply: str
@@ -230,10 +235,21 @@ async def chat(request: ChatRequest):
 
         # --- Step 1: NLP extraction ---
         extraction = NLP.extract(latest_user_msg)
+        
+        # Retrieve existing symptoms from session (or fallback to client-provided)
+        if request.session_id and request.session_id in SESSION_STORE:
+            existing_symptoms = SESSION_STORE[request.session_id]
+        else:
+            existing_symptoms = request.extracted_symptoms or []
+
         all_symptoms = merge_symptom_timeline(
-            request.extracted_symptoms or [],
+            existing_symptoms,
             extraction.symptoms,
         )
+
+        # Update session store
+        if request.session_id:
+            SESSION_STORE[request.session_id] = all_symptoms
 
         # --- Step 2: Red flag check ---
         red_flags = check_red_flags(GRAPH, all_symptoms + (extraction.symptoms if extraction else []))
