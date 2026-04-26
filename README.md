@@ -7,7 +7,7 @@ Most symptom checkers are either too vague ("you might have a cold or cancer") o
 
 ---
 
-##  📸 What It Looks Like
+##   What It Looks Like
 
 The interface has two panels working in parallel. On the left, a conversational chat. On the right, a live diagnostics view showing exactly what the system is doing — extracted symptoms, knowledge graph traversal, and ranked condition matches.
 
