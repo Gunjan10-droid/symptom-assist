@@ -447,7 +447,9 @@ class SymptomExtractor:
 
         for symptom in found_symptoms:
             symptom_words = set(symptom.split())
-            if symptom_words & input_words:
+
+    # allow fuzzy overlap OR phrase match OR manual mapping
+            if symptom_words & input_words or len(symptom_words) == 1:
                 cleaned_symptoms.append(symptom)
                 
         original_words = set(re.findall(r"[a-z']+", text_lower))
