@@ -313,9 +313,12 @@ def build_journey_edges(symptom_timeline: List[dict], candidates: List[dict]) ->
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
-        session_id, prior_symptoms = _get_or_create_session(request.session_id)
         if not request.messages:
             raise HTTPException(status_code=400, detail="No messages provided")
+
+        # --- Step 0: Session Management ---
+        # Retrieve existing symptoms and session ID (or create new ones)
+        session_id, prior_symptoms = _get_or_create_session(request.session_id)
 
         # Get the latest user message
         latest_user_msg = next(
@@ -326,19 +329,15 @@ async def chat(request: ChatRequest):
         # --- Step 1: NLP extraction ---
         extraction = NLP.extract(latest_user_msg)
 
-      
-       # 🚨 Handle mixed valid + invalid input (from main)
-noise_message = ""
+        # 🚨 Handle mixed valid + invalid input
+        noise_message = ""
+        if extraction.symptoms and getattr(extraction, 'noise', None):
+            noise_message = f"I understood {', '.join(extraction.symptoms)}, but some parts of your input were unclear."
+        elif not extraction.symptoms:
+            noise_message = "I couldn't identify any valid symptoms. Please describe your symptoms clearly."
 
-if not extraction.symptoms:
-    noise_message = "I couldn't identify any valid symptoms. Please describe your symptoms clearly."
-
-elif getattr(extraction, 'noise', None):
-    noise_message = f"I understood {', '.join(extraction.symptoms)}, but some parts of your input were unclear."
-
-# ✅ Always run if symptoms exist
-if extraction.symptoms:
-    all_symptoms_data = merge_symptom_timeline(prior_symptoms, extraction.symptoms)
+        # Temporal Context Logic
+        all_symptoms_data = merge_symptom_timeline(prior_symptoms, extraction.symptoms)
 
         if request.temporal_context:
             for ctx in request.temporal_context:
@@ -359,7 +358,7 @@ if extraction.symptoms:
         all_symptom_names = [s["name"] for s in all_symptoms_data]
 
         # --- Step 2: Red flag check ---
-        red_flags = check_red_flags(GRAPH, all_symptoms )
+        red_flags = check_red_flags(GRAPH, all_symptom_names)
 
         # --- Step 3: BFS graph traversal ---
         candidates = traverse_graph(GRAPH, all_symptoms_data)
@@ -394,13 +393,13 @@ if extraction.symptoms:
 
         # --- Step 5: Build enriched system prompt ---
         system_prompt = build_system_prompt(
-    extracted_symptoms=all_symptoms,
-    candidate_conditions=candidates,
-    rag_context=rag_context,
-    followup_questions=followup_questions,
-    red_flags=red_flags,
-    has_noise=bool(extraction.noise),
-)
+            extracted_symptoms=all_symptom_names,
+            candidate_conditions=candidates,
+            rag_context=rag_context,
+            followup_questions=followup_questions,
+            red_flags=red_flags,
+            has_noise=bool(extraction.noise),
+        )
 
         # --- Step 6: Call Groq with full context ---
         # Map roles to Groq roles ("user" -> "user", "model" -> "assistant")
