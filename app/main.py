@@ -24,7 +24,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from groq import Groq
 from dotenv import load_dotenv
@@ -112,20 +112,20 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 
 class Message(BaseModel):
-    role: str       # "user" or "model" (Gemini uses "model", but frontend might still send it)
-    content: str
+    role: str = Field(..., pattern="^(user|assistant|model)$")
+    content: str = Field(..., min_length=1, max_length=1000)
 
 class SymptomDetail(BaseModel):
-    name: str
-    onset_order: Optional[int] = None      # 1 = first, 2 = second, etc.
-    duration: Optional[str] = None         # e.g., "3 days", "since morning"
-    severity: Optional[str] = None         # e.g., "mild", "severe"
+    name: str = Field(..., min_length=1, max_length=100)
+    onset_order: Optional[int] = Field(None, ge=1, le=50)
+    duration: Optional[str] = Field(None, max_length=100)
+    severity: Optional[str] = Field(None, max_length=50)
 
 class ChatRequest(BaseModel):
-    messages: List[Message]
-    session_id: Optional[str] = None        # server echoes this back; client stores and re-sends
-    extracted_symptoms: Optional[List[str]] = []  # kept for backwards-compat
-    temporal_context: Optional[List[SymptomDetail]] = [] # New: detailed symptom timing
+    messages: List[Message] = Field(..., max_length=20)
+    session_id: Optional[str] = Field(None, max_length=100)
+    extracted_symptoms: Optional[List[str]] = Field([], max_length=30)
+    temporal_context: Optional[List[SymptomDetail]] = Field([], max_length=30)
 
 class ChatResponse(BaseModel):
     reply: str
@@ -313,6 +313,7 @@ def build_journey_edges(symptom_timeline: List[dict], candidates: List[dict]) ->
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
+        session_id, prior_symptoms = _get_or_create_session(request.session_id)
         if not request.messages:
             raise HTTPException(status_code=400, detail="No messages provided")
 
@@ -325,15 +326,19 @@ async def chat(request: ChatRequest):
         # --- Step 1: NLP extraction ---
         extraction = NLP.extract(latest_user_msg)
 
-        # 🚨 Handle mixed valid + invalid input (from main)
-        noise_message = ""
-        if not extraction.symptoms:
-            noise_message = "I'm not fully sure I understood. Could you describe your symptoms a bit more clearly?"
-        else:
-            noise_message = ""  # ❗ no interruption if at least one valid symptom exists
+      
+       # 🚨 Handle mixed valid + invalid input (from main)
+noise_message = ""
 
-        # Temporal Context Logic (from feature branch)
-        all_symptoms_data = merge_symptom_timeline(prior_symptoms, extraction.symptoms)
+if not extraction.symptoms:
+    noise_message = "I couldn't identify any valid symptoms. Please describe your symptoms clearly."
+
+elif getattr(extraction, 'noise', None):
+    noise_message = f"I understood {', '.join(extraction.symptoms)}, but some parts of your input were unclear."
+
+# ✅ Always run if symptoms exist
+if extraction.symptoms:
+    all_symptoms_data = merge_symptom_timeline(prior_symptoms, extraction.symptoms)
 
         if request.temporal_context:
             for ctx in request.temporal_context:
@@ -359,10 +364,24 @@ async def chat(request: ChatRequest):
         # --- Step 3: BFS graph traversal ---
         candidates = traverse_graph(GRAPH, all_symptoms_data)
         followup_questions = []
-        top_condition = None
-        if candidates:
-            top_condition = candidates[0]["condition_id"]
-            followup_questions = get_followup_questions(GRAPH, top_condition)
+        top_condition = [
+            {
+                "display": c["display"],
+                "score": c["score"],
+                "severity": c["severity"],
+                "condition_id": c["condition_id"],
+                "traversal_path": c.get("traversal_path", []),
+
+                # 🔥 ADD THESE (your XAI fields)
+                "confidence": c.get("confidence"),
+                "match_ratio": c.get("match_ratio"),
+                "matched_symptoms": c.get("matched_symptoms"),
+                "contribution": c.get("contribution"),
+            }
+            for c in candidates[:3]
+        ]
+        top_condition_id = candidates[0]["condition_id"] if candidates else None
+        followup_questions = get_followup_questions(GRAPH, top_condition_id) if top_condition_id else []
 
         journey_edges = build_journey_edges(all_symptoms_data, candidates)
 
@@ -406,16 +425,7 @@ async def chat(request: ChatRequest):
             extracted_symptoms=all_symptom_names,
             symptom_timeline=all_symptom_names,
             temporal_context=[SymptomDetail(**s) for s in all_symptoms_data],
-            top_conditions=[
-                {
-                    "display":       c["display"],
-                    "score":         c["score"],
-                    "severity":      c["severity"],
-                    "condition_id":  c["condition_id"],
-                    "traversal_path": c.get("traversal_path", []),
-                }
-                for c in candidates[:3]
-            ],
+            top_conditions=top_condition,
             rag_sources=rag_sources,
             graph_followups=followup_questions[:4],
             red_flags_detected=red_flags,

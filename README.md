@@ -1,4 +1,11 @@
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:EA1DFE,100:609BF1&height=150&section=header"/>
 
+![NSOC 2026](https://img.shields.io/badge/NSOC-2026-blueviolet?style=for-the-badge)
+![Status](https://img.shields.io/badge/status-active-success?style=for-the-badge)
+
+Part of **Nexus Spring of Code 2026 (NSOC '26)** — an open-source initiative empowering developers to build impactful, real-world projects.
+
+---
 # **🩺 SymptomAssist AI**
 
 **A hybrid medical advisor that thinks in two layers — structured medical knowledge and conversational reasoning — so it can tell you what's wrong, not just what might be wrong.**
