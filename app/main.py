@@ -337,7 +337,10 @@ async def chat(request: ChatRequest):
             noise_message = "I couldn't identify any valid symptoms. Please describe your symptoms clearly."
 
         # Temporal Context Logic
-        all_symptoms_data = merge_symptom_timeline(prior_symptoms, extraction.symptoms)
+        if extraction.symptoms:
+            all_symptoms_data = merge_symptom_timeline(prior_symptoms, extraction.symptoms)
+        else:
+            all_symptoms_data = list(prior_symptoms)
 
         if request.temporal_context:
             for ctx in request.temporal_context:
