@@ -219,15 +219,20 @@ def traverse_graph(G: nx.DiGraph, symptoms: list) -> list[dict]:
     if not matched_nodes:
         return []
 
-    # -- Step 2 & 3: Direct 1-hop traversal from symptoms to conditions --
+    # -- Step 2 & 3: BFS traversal --
     condition_scores: dict[str, float] = defaultdict(float)
     symptom_contribution: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     traversal_path: list[dict] = []       # records each step taken
+    visited_edges: set[tuple[str, str]] = set()
 
     # Create a lookup for patient onset order
     patient_onset = {node: order for node, order in matched_nodes if order is not None}
     
-    for current, _ in matched_nodes:
+    # Enqueue nodes for BFS
+    queue: deque[str] = deque([node for node, _ in matched_nodes])
+
+    while queue:
+        current = queue.popleft()
         
         # Determine current symptom's reported order (if any)
         current_patient_order = patient_onset.get(current)
@@ -235,6 +240,10 @@ def traverse_graph(G: nx.DiGraph, symptoms: list) -> list[dict]:
         for _, neighbour, edge_data in G.out_edges(current, data=True):
             if edge_data.get("edge_type") != "SUGGESTS":
                 continue
+            
+            if (current, neighbour) in visited_edges:
+                continue
+            visited_edges.add((current, neighbour))
 
             weight = edge_data.get("weight", 1.0)
             
@@ -265,6 +274,9 @@ def traverse_graph(G: nx.DiGraph, symptoms: list) -> list[dict]:
                 "weight": final_weight,
                 "temporal_match": temporal_multiplier > 1.0
             })
+
+            # Enqueue for further traversal
+            queue.append(neighbour)
 
     if not condition_scores:
         return []
