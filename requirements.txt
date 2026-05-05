@@ -14,7 +14,7 @@ rapidfuzz
 # For production-grade RAG (upgrade from TF-IDF):
 sentence-transformers
 scipy
-# chromadb
+chromadb
 
 # For production-grade NLP (upgrade from keyword matching):
 spacy
