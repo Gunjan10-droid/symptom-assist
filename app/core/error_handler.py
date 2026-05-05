@@ -10,6 +10,7 @@ Supports:
 """
 
 import time
+import asyncio
 from typing import Callable, TypeVar, Any
 from functools import wraps
 import logging
@@ -146,14 +147,14 @@ def retry_with_backoff(
         def call_groq_api():
             ...
     """
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> T:
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             last_exception = None
             
             for attempt in range(max_retries + 1):
                 try:
-                    return func(*args, **kwargs)
+                    return await func(*args, **kwargs)
                 except Exception as e:
                     last_exception = e
                     
@@ -175,7 +176,7 @@ def retry_with_backoff(
                             f"Retrying after {delay}s (attempt {attempt + 1}/{max_retries})... "
                             f"Error: {type(e).__name__}"
                         )
-                        time.sleep(delay)
+                        await asyncio.sleep(delay)
                     else:
                         APIErrorHandler.log_error(e, f"Final attempt {attempt + 1}/{max_retries + 1}")
             
