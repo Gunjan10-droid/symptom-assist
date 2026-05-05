@@ -221,18 +221,15 @@ def traverse_graph(G: nx.DiGraph, symptoms: list) -> list[dict]:
 
     # -- Step 2 & 3: BFS traversal --
     condition_scores: dict[str, float] = defaultdict(float)
-    # NEW: Track contribution of each symptom per condition
     symptom_contribution: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     traversal_path: list[dict] = []       # records each step taken
-    visited: set[str] = set()
+    visited_edges: set[tuple[str, str]] = set()
 
     # Create a lookup for patient onset order
     patient_onset = {node: order for node, order in matched_nodes if order is not None}
     
     # Enqueue nodes for BFS
     queue: deque[str] = deque([node for node, _ in matched_nodes])
-    for n, _ in matched_nodes:
-        visited.add(n)
 
     while queue:
         current = queue.popleft()
@@ -243,9 +240,10 @@ def traverse_graph(G: nx.DiGraph, symptoms: list) -> list[dict]:
         for _, neighbour, edge_data in G.out_edges(current, data=True):
             if edge_data.get("edge_type") != "SUGGESTS":
                 continue
-            if neighbour in visited:
+            
+            if (current, neighbour) in visited_edges:
                 continue
-            visited.add(neighbour)
+            visited_edges.add((current, neighbour))
 
             weight = edge_data.get("weight", 1.0)
             
