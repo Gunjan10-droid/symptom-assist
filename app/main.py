@@ -26,7 +26,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from groq import Groq
+from groq import AsyncGroq
 from dotenv import load_dotenv
 import logging
 
@@ -61,7 +61,7 @@ RAG = RAGPipeline(csv_path=_DOCS_CSV)
 print("[startup] Loading NLP extractor (dynamic lexicon from CSV)...")
 NLP = SymptomExtractor(csv_path=_SYMPTOM_CSV)
 print("[startup] Groq client ready.")
-GROQ = Groq(api_key=os.getenv("GROQ_API_KEY"))
+GROQ = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"))
 
 # ---------------------------------------------------------------------------
 # Server-side session store: sessionId -> { symptoms: list[dict], last_active: datetime }
@@ -291,7 +291,7 @@ FINAL_LINK_THRESHOLD = 0.65
 
 
 @retry_with_backoff(max_retries=2, base_delay=1.0)
-def call_groq_api(messages: list, model: str = "llama-3.1-8b-instant") -> str:
+async def call_groq_api(messages: list, model: str = "llama-3.1-8b-instant") -> str:
     """
     Call Groq API with proper error handling and retry logic.
     
@@ -305,7 +305,7 @@ def call_groq_api(messages: list, model: str = "llama-3.1-8b-instant") -> str:
     Raises:
         Various exceptions with user-friendly handling
     """
-    chat_completion = GROQ.chat.completions.create(
+    chat_completion = await GROQ.chat.completions.create(
         model=model,
         messages=messages,
         max_tokens=1000,
@@ -468,7 +468,7 @@ async def chat(request: ChatRequest):
             messages.append({"role": role, "content": m.content})
 
         try:
-            reply = call_groq_api(messages)
+            reply = await call_groq_api(messages)
             if noise_message:
                 reply = f"{noise_message}\n\n{reply}"
         except Exception as e:
