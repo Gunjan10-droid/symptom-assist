@@ -216,33 +216,27 @@ def traverse_graph(G: nx.DiGraph, symptoms: list[str]) -> list[dict]:
     traversal_path: list[dict] = []       # records each step taken
     visited: set[str] = set()
 
-    queue: deque[str] = deque(matched_nodes)
-    for n in matched_nodes:
-        visited.add(n)
+    seen_edges: set[tuple[str, str]] = set()
 
-    while queue:
-        current = queue.popleft()
-        current_type = G.nodes[current].get("node_type", "")
-
-        for _, neighbour, edge_data in G.out_edges(current, data=True):
+    for symptom in matched_nodes:
+        for _, neighbour, edge_data in G.out_edges(symptom, data=True):
             if edge_data.get("edge_type") != "SUGGESTS":
                 continue
-            if neighbour in visited:
+
+            edge_key = (symptom, neighbour)
+            if edge_key in seen_edges:
                 continue
-            visited.add(neighbour)
+            seen_edges.add(edge_key)
 
             weight = edge_data.get("weight", 1.0)
             condition_scores[neighbour] += weight
 
             traversal_path.append({
-                "from": current,
-                "to":   neighbour,
+                "from": symptom,
+                "to": neighbour,
                 "weight": weight,
             })
-
-            # Enqueue for further traversal (in case of multi-hop graphs)
-            queue.append(neighbour)
-
+            
     if not condition_scores:
         return []
 
