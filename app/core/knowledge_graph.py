@@ -385,6 +385,43 @@ def graph_summary(G: nx.DiGraph) -> dict:
         "condition_list": [G.nodes[c]["display"] for c in condition_nodes],
     }
 
+def explain_diagnosis(result: dict) -> str:
+    """
+    Generates a human-readable explanation for a diagnosis result.
+    Uses existing traversal_path and contribution data already 
+    computed by traverse_graph().
+
+    Args:
+        result (dict): A single result dict from traverse_graph()
+
+    Returns:
+        str: Human-readable explanation of why this condition was suggested
+    
+    Example:
+        >>> results = traverse_graph(G, ["headache", "nausea"])
+        >>> print(explain_diagnosis(results[0]))
+        Why 'Migraine' was suggested:
+          - 'headache' contributed 56%
+          - 'nausea' contributed 44%
+        Confidence: MEDIUM
+        Matched 2/4 known symptoms
+    """
+    lines = [f"Why '{result['display']}' was suggested:"]
+
+    contribution = result.get("contribution", {})
+    total = sum(contribution.values()) or 1
+
+    for symptom, weight in sorted(contribution.items(), key=lambda x: -x[1]):
+        percentage = round((weight / total) * 100)
+        lines.append(f"  - '{symptom}' contributed {percentage}%")
+
+    lines.append(f"\nConfidence: {result['confidence'].upper()}")
+    lines.append(f"Matched {result['match_ratio']} known symptoms")
+
+    if result.get("red_flags"):
+        lines.append(f"\n⚠️ Red flags: {', '.join(result['red_flags'])}")
+
+    return "\n".join(lines)
 
 # ---------------------------------------------------------------------------
 # 4. Quick self-test
