@@ -40,15 +40,16 @@ def test_multiple_symptoms_all_matched(graph):
     """Regression: early-exit bug — all 3 symptoms must contribute to scoring."""
     symptoms = ["fever", "sore throat", "body aches"]
     results = traverse_graph(graph, symptoms)
-    
+
     assert len(results) > 0
-    
-    strongest_single_edge = max_single_symptom_weight(graph,symptoms)
-    
+
+    strongest_single_edge = max_single_symptom_weight(graph, symptoms)
+
     # The top multi-symptom result should be stronger than any one single edge.
     assert results[0]["raw_score"] > strongest_single_edge, (
         f"raw_score={results[0]['raw_score']} strongest_single_edge={strongest_single_edge}"
     )
+    assert len(results[0]["contribution"]) > 1, "Expected multiple symptoms to contribute"
 
 
 def test_multi_symptom_returns_more_candidates_than_single(graph):

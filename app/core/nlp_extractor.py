@@ -26,7 +26,7 @@ except ImportError:  # pragma: no cover
     _FUZZY_AVAILABLE = False
 
 # Minimum similarity score (0-100) to accept a fuzzy match
-FUZZY_THRESHOLD = 85
+FUZZY_THRESHOLD = 92
 
 
 # ---------------------------------------------------------------------------
@@ -82,7 +82,7 @@ _MANUAL_SYNONYMS: dict[str, list[str]] = {
                                "burns when i urinate", "pain urinating"],
     "frequent urination":     ["frequent urination", "urinating often", "need to urinate often",
                                "peeing a lot", "going to toilet often", "urgency to urinate",
-                               "going bathroom often"],
+                               "going bathroom often", "urinating frequently", "peeing frequently"],
     "body aches":             ["body aches", "muscle aches", "all over aches", "aching",
                                "sore all over", "body pain", "aching body"],
     "back pain":              ["back pain", "backache", "back ache", "lower back pain",
@@ -107,7 +107,7 @@ _MANUAL_SYNONYMS: dict[str, list[str]] = {
     "watery eyes":            ["watery eyes", "eyes watering", "tearing", "tears"],
     "blurred vision":         ["blurred vision", "blurry vision", "vision blurred", "fuzzy vision"],
     "thirst":                 ["thirsty", "thirst", "very thirsty", "drinking lots", "increased thirst"],
-    "frequent urination":     ["frequent urination", "urinating frequently", "peeing frequently"],
+
     "weight loss":            ["losing weight", "weight loss", "lost weight unintentionally", "unexplained weight loss"],
     "weight gain":            ["weight gain", "gaining weight", "putting on weight"],
     "trembling":              ["trembling", "shaking", "tremor", "hands shaking", "shaky"],
@@ -221,6 +221,7 @@ class ExtractionResult(NamedTuple):
     symptoms:    list   # canonical symptom names found
     raw_mentions: list  # original phrases from user text
     negated:     list   # symptoms mentioned but negated ("no fever")
+    noise: list
 
 
 class SymptomExtractor:
@@ -433,11 +434,39 @@ class SymptomExtractor:
                 else:
                     if canonical not in found_symptoms:
                         found_symptoms.append(canonical)
+        # 🔥 Filter: keep only symptoms that actually relate to input words
+        cleaned_symptoms = []
+        STOPWORDS = {"and", "or", "the", "a", "i", "have", "has", "had"}
 
+        input_words = set(
+            word for word in re.findall(r"[a-z']+", text_lower)
+            if word not in STOPWORDS
+        )
+
+        cleaned_symptoms = []
+
+        for symptom in found_symptoms:
+            symptom_words = set(symptom.split())
+
+    # allow fuzzy overlap OR phrase match OR manual mapping
+            if symptom_words & input_words or len(symptom_words) == 1:
+                cleaned_symptoms.append(symptom)
+                
+        original_words = set(re.findall(r"[a-z']+", text_lower))
+        matched_words = set()
+        for phrase in raw_mentions:
+            matched_words.update(phrase.lower().split())
+
+        noise_words = [
+            word for word in (original_words-matched_words)
+            if word not in STOPWORDS and len(word) >3
+        ]
+        found_symptoms = cleaned_symptoms
         return ExtractionResult(
-            symptoms     = found_symptoms,
+            symptoms = found_symptoms,
             raw_mentions = raw_mentions,
-            negated      = negated_symptoms,
+            negated = negated_symptoms,
+            noise = list(noise_words)   # 👈 ADD THIS
         )
 
 
