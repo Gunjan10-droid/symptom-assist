@@ -496,9 +496,9 @@ async def chat(request: ChatRequest):
         print("CRITICAL ERROR IN /chat ENDPOINT:")
         print(err_msg)
         APIErrorHandler.log_error(overall_e, "Critical error in /chat endpoint")
-        with open("error_log.txt", "w") as f:
+        with open("error_log.txt", "w", encoding="utf-8") as f:
             f.write(err_msg)
-        raise HTTPException(status_code=500, detail=APIErrorHandler.get_user_message(overall_e))
+        raise HTTPException(status_code=500, detail=APIErrorHandler.get_user_message(overall_e)) from overall_e
 
 
 @app.post("/session/clear")
@@ -663,4 +663,8 @@ def index():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        app,
+        host=os.getenv("HOST", "127.0.0.1"),
+        port=int(os.getenv("PORT", "8000")),
+    )
