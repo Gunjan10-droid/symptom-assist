@@ -107,6 +107,7 @@ _MANUAL_SYNONYMS: dict[str, list[str]] = {
     "watery eyes":            ["watery eyes", "eyes watering", "tearing", "tears"],
     "blurred vision":         ["blurred vision", "blurry vision", "vision blurred", "fuzzy vision"],
     "thirst":                 ["thirsty", "thirst", "very thirsty", "drinking lots", "increased thirst"],
+
     "weight loss":            ["losing weight", "weight loss", "lost weight unintentionally", "unexplained weight loss"],
     "weight gain":            ["weight gain", "gaining weight", "putting on weight"],
     "trembling":              ["trembling", "shaking", "tremor", "hands shaking", "shaky"],
