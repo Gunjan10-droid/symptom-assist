@@ -36,9 +36,9 @@ def load_documents_from_csv(csv_path: str) -> list[dict]:
     documents: list[dict] = []
     with open(csv_path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        for row in reader:
+        for i, row in enumerate(reader):
             documents.append({
-                "id":        f"doc_{row['condition'].strip()}",
+                "id":        f"doc_{row['condition'].strip()}_{i}",
                 "condition": row["condition"].strip(),
                 "title": (row.get("title") or "").strip(),
                 "content": (row.get("content") or "").strip(),
