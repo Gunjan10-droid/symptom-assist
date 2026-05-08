@@ -98,6 +98,7 @@ class SemanticRetriever:
         ids = []
         texts_to_embed = []
         metadatas = []
+        seen_ids = set()
 
         for doc in documents:
             content = doc.get("content", "")
@@ -108,6 +109,11 @@ class SemanticRetriever:
             
             for i, chunk_text in enumerate(doc_chunks):
                 chunk_id = f"{doc['id']}_chunk_{i}"
+                
+                # Deduplicate within this batch
+                if chunk_id in seen_ids:
+                    continue
+                seen_ids.add(chunk_id)
                 
                 # We need to embed title + content for better semantic matching
                 embed_text = f"{title}: {chunk_text}"
