@@ -361,7 +361,11 @@ async def chat(request: ChatRequest):
         all_symptom_names = [s["name"] for s in all_symptoms_data]
 
         # --- Step 2: Red flag check ---
-        red_flags = check_red_flags(GRAPH, all_symptom_names)
+        safe_symptoms = [
+        s for s in all_symptom_names
+        if s not in extraction.negated
+        ]
+        red_flags = check_red_flags(GRAPH, safe_symptoms)
 
         # --- Step 3: BFS graph traversal ---
         candidates = traverse_graph(GRAPH, all_symptoms_data)
