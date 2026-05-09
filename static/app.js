@@ -758,8 +758,10 @@
         if (!text || isLoading) return;
 
         inputEl.value = "";
-        sendBtn.disabled = true;
         isLoading = true;
+
+        sendBtn.disabled = true;
+        sendBtn.textContent = "Sending...";
 
         addMessage("user", text);
         history.push({ role: "user", content: text });
@@ -798,7 +800,10 @@
         }
 
         isLoading = false;
+
+        sendBtn.textContent = "Send";
         sendBtn.disabled = inputEl.value.trim() === "";
+
         inputEl.focus();
       }
 
