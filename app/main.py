@@ -41,7 +41,7 @@ from .core.knowledge_graph import (
 from .core.rag_pipeline import RAGPipeline
 from .core.nlp_extractor import SymptomExtractor
 
-load_dotenv()
+load_dotenv(override=True)
 setup_logging(log_dir="logs", level=logging.INFO)
 
 # ---------------------------------------------------------------------------
@@ -55,13 +55,13 @@ _DOCS_CSV     = str(_PROJECT_ROOT / "data" / "medical_docs.csv")
 # Initialise AI components at startup
 # ---------------------------------------------------------------------------
 
-print("[startup] Building knowledge graph from CSV...")
+logging.info("[startup] Building knowledge graph from CSV...")
 GRAPH = load_graph_from_csv(_SYMPTOM_CSV)
-print("[startup] Initialising RAG pipeline from CSV...")
+logging.info("[startup] Initialising RAG pipeline from CSV...")
 RAG = RAGPipeline(csv_path=_DOCS_CSV)
-print("[startup] Loading NLP extractor (dynamic lexicon from CSV)...")
+logging.info("[startup] Loading NLP extractor (dynamic lexicon from CSV)...")
 NLP = SymptomExtractor(csv_path=_SYMPTOM_CSV)
-print("[startup] Groq client ready.")
+logging.info("[startup] Groq client ready.")
 GROQ = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"))
 
 # ---------------------------------------------------------------------------
@@ -498,7 +498,11 @@ async def chat(request: ChatRequest):
         all_symptom_names = [s["name"] for s in all_symptoms_data]
 
         # --- Step 2: Red flag check ---
-        red_flags = check_red_flags(GRAPH, all_symptom_names)
+        safe_symptoms = [
+            s for s in all_symptom_names
+            if s not in extraction.negated
+        ]
+        red_flags = check_red_flags(GRAPH, safe_symptoms)
 
         # --- Step 3: BFS graph traversal ---
         candidates = traverse_graph(GRAPH, all_symptoms_data)
@@ -574,8 +578,8 @@ async def chat(request: ChatRequest):
     except Exception as overall_e:
         import traceback
         err_msg = traceback.format_exc()
-        print("CRITICAL ERROR IN /chat ENDPOINT:")
-        print(err_msg)
+        logging.error("CRITICAL ERROR IN /chat ENDPOINT:")
+        logging.error(err_msg)
         APIErrorHandler.log_error(overall_e, "Critical error in /chat endpoint")
         with open("error_log.txt", "w", encoding="utf-8") as f:
             f.write(err_msg)
@@ -779,7 +783,8 @@ def index():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        app,
+        "app.main:app",
         host=os.getenv("HOST", "127.0.0.1"),
         port=int(os.getenv("PORT", "8000")),
+        reload=True if os.getenv("DEBUG") == "True" else False
     )
