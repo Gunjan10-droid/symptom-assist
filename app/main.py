@@ -40,7 +40,7 @@ from .core.knowledge_graph import (
 from .core.rag_pipeline import RAGPipeline
 from .core.nlp_extractor import SymptomExtractor
 
-load_dotenv()
+load_dotenv(override=True)
 setup_logging(log_dir="logs", level=logging.INFO)
 
 # ---------------------------------------------------------------------------
@@ -327,18 +327,19 @@ async def chat(request: ChatRequest):
         extraction = NLP.extract(latest_user_msg)
 
       
-       # 🚨 Handle mixed valid + invalid input (from main)
-noise_message = ""
+        # 🚨 Handle mixed valid + invalid input (from main)
+        noise_message = ""
 
-if not extraction.symptoms:
-    noise_message = "I couldn't identify any valid symptoms. Please describe your symptoms clearly."
+        if not extraction.symptoms:
+            noise_message = "I couldn't identify any valid symptoms. Please describe your symptoms clearly."
 
-elif getattr(extraction, 'noise', None):
-    noise_message = f"I understood {', '.join(extraction.symptoms)}, but some parts of your input were unclear."
+        elif getattr(extraction, 'noise', None):
+            noise_message = f"I understood {', '.join(extraction.symptoms)}, but some parts of your input were unclear."
 
-# ✅ Always run if symptoms exist
-if extraction.symptoms:
-    all_symptoms_data = merge_symptom_timeline(prior_symptoms, extraction.symptoms)
+        # ✅ Always run if symptoms exist
+        all_symptoms_data = prior_symptoms
+        if extraction.symptoms:
+            all_symptoms_data = merge_symptom_timeline(prior_symptoms, extraction.symptoms)
 
         if request.temporal_context:
             for ctx in request.temporal_context:
@@ -359,7 +360,7 @@ if extraction.symptoms:
         all_symptom_names = [s["name"] for s in all_symptoms_data]
 
         # --- Step 2: Red flag check ---
-        red_flags = check_red_flags(GRAPH, all_symptoms )
+        red_flags = check_red_flags(GRAPH, all_symptom_names)
 
         # --- Step 3: BFS graph traversal ---
         candidates = traverse_graph(GRAPH, all_symptoms_data)
@@ -394,7 +395,7 @@ if extraction.symptoms:
 
         # --- Step 5: Build enriched system prompt ---
         system_prompt = build_system_prompt(
-    extracted_symptoms=all_symptoms,
+    extracted_symptoms=all_symptom_names,
     candidate_conditions=candidates,
     rag_context=rag_context,
     followup_questions=followup_questions,
@@ -562,4 +563,4 @@ def index():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
