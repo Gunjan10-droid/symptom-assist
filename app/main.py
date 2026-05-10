@@ -41,7 +41,7 @@ from .core.knowledge_graph import (
 from .core.rag_pipeline import RAGPipeline
 from .core.nlp_extractor import SymptomExtractor
 
-load_dotenv()
+load_dotenv('.env.example')
 setup_logging(log_dir="logs", level=logging.INFO)
 
 # ---------------------------------------------------------------------------
@@ -55,13 +55,13 @@ _DOCS_CSV     = str(_PROJECT_ROOT / "data" / "medical_docs.csv")
 # Initialise AI components at startup
 # ---------------------------------------------------------------------------
 
-print("[startup] Building knowledge graph from CSV...")
+logging.info("[startup] Building knowledge graph from CSV...")
 GRAPH = load_graph_from_csv(_SYMPTOM_CSV)
-print("[startup] Initialising RAG pipeline from CSV...")
+logging.info("[startup] Initialising RAG pipeline from CSV...")
 RAG = RAGPipeline(csv_path=_DOCS_CSV)
-print("[startup] Loading NLP extractor (dynamic lexicon from CSV)...")
+logging.info("[startup] Loading NLP extractor (dynamic lexicon from CSV)...")
 NLP = SymptomExtractor(csv_path=_SYMPTOM_CSV)
-print("[startup] Groq client ready.")
+logging.info("[startup] Groq client ready.")
 GROQ = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"))
 
 # ---------------------------------------------------------------------------
@@ -574,8 +574,8 @@ async def chat(request: ChatRequest):
     except Exception as overall_e:
         import traceback
         err_msg = traceback.format_exc()
-        print("CRITICAL ERROR IN /chat ENDPOINT:")
-        print(err_msg)
+        logging.error("CRITICAL ERROR IN /chat ENDPOINT:")
+        logging.error(err_msg)
         APIErrorHandler.log_error(overall_e, "Critical error in /chat endpoint")
         with open("error_log.txt", "w", encoding="utf-8") as f:
             f.write(err_msg)
