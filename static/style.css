@@ -548,10 +548,16 @@
         font-weight: 700;
         color: var(--text-main);
       }
+      .dark-mode .sidebar-header h2 {
+        color: #f8fafc;
+      }
       .sidebar-header p {
         font-size: 12px;
         color: var(--text-muted);
         margin-top: 2px;
+      }
+      .dark-mode .sidebar-header p {
+        color: #cbd5e1;
       }
 
       .sidebar-content {
