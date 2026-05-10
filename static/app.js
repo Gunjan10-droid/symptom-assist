@@ -1026,3 +1026,10 @@
           }
         });
       };
+
+        function sendChip(text) {
+          const input = document.getElementById('input');
+          input.value = text;
+          input.dispatchEvent(new Event('input'));
+          document.getElementById('send-btn').click();
+        }
