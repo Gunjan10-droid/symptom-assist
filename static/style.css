@@ -1466,3 +1466,132 @@
   border-color: rgba(99, 202, 183, 0.5);
   color: #ffffff;
 }
+
+
+/* ============================================================
+   XAI Visualisations (Issue #71)
+   ============================================================ */
+
+/* Confidence Indicators */
+.xai-match-quality {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-top: 8px;
+  border: 1px solid transparent;
+}
+.xai-conf-high { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+.xai-conf-medium { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+.xai-conf-low { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+
+.dark-mode .xai-conf-high { background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: rgba(52, 211, 153, 0.3); }
+.dark-mode .xai-conf-medium { background: rgba(245, 158, 11, 0.1); color: #fbbf24; border-color: rgba(251, 191, 36, 0.3); }
+.dark-mode .xai-conf-low { background: rgba(239, 68, 68, 0.1); color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
+
+/* Symptom Contribution Chart */
+.xai-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+.xai-contrib {
+  margin-top: 14px;
+  background: rgba(241, 245, 249, 0.5);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px dashed #e2e8f0;
+}
+.dark-mode .xai-contrib {
+  background: rgba(30, 41, 59, 0.3);
+  border-color: #334155;
+}
+.xai-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+.xai-bar-row:last-child { margin-bottom: 0; }
+.xai-bar-label { flex: 0 0 45%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main); }
+.xai-bar-track { flex: 1; height: 6px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+.dark-mode .xai-bar-track { background: #334155; }
+.xai-bar-fill { height: 100%; background: #0ea5e9; border-radius: 4px; }
+.xai-bar-val { flex: 0 0 25px; text-align: right; color: var(--text-muted); font-size: 10px; }
+ 
+.xai-checklist {
+  margin-top: 14px;
+}
+.xai-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.xai-list li {
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(241, 245, 249, 0.5);
+}
+.dark-mode .xai-list li { background: rgba(30, 41, 59, 0.3); }
+.xai-matched { color: #059669; }
+.dark-mode .xai-matched { color: #34d399; }
+.xai-missing { color: #94a3b8; text-decoration: line-through; }
+ 
+.xai-flowchart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+}
+.xai-flow-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  animation: fadeInMsg 0.4s both;
+}
+.xai-flow-node {
+  background: var(--bg);
+  border: 1px solid var(--primary-light);
+  color: var(--primary-dark);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  text-align: center;
+  max-width: 90%;
+}
+.dark-mode .xai-flow-node { color: #14b8a6; }
+.xai-flow-target {
+  background: var(--primary);
+  color: white !important;
+  border-color: var(--primary);
+}
+.xai-flow-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  color: #94a3b8;
+}
+.xai-flow-weight {
+  font-size: 9px;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-bottom: -4px;
+  z-index: 1;
+}
+.dark-mode .xai-flow-weight { background: #1e293b; color: #cbd5e1; }
