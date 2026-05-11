@@ -1467,12 +1467,7 @@
   color: #ffffff;
 }
 
-
-/* ============================================================
-   XAI Visualisations (Issue #71)
-   ============================================================ */
-
-/* Confidence Indicators */
+ 
 .xai-match-quality {
   display: flex;
   justify-content: space-between;
